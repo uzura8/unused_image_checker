@@ -1,0 +1,33 @@
+# OS file
+*~
+*.bak
+.DS_Store
+Thumbs.db
+
+# IDE user config
+.vscode/
+.idea/
+.vs/
+.buildpath
+.project
+.settings
+*.tmproj
+nbproject/
+tags
+
+# Istanbul coverage
+coverage/
+
+# cypress
+cypress/screenshots
+cypress/videos
+
+.vercel
+.now
+
+# python
+__pycache__
+.venv
+
+# app
+/var/*
