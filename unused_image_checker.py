@@ -7,9 +7,11 @@ from datetime import datetime
 from pprint import pprint
 from bs4 import BeautifulSoup
 from chardet import detect
+import pandas as pd
 
 SEARCH_STR_CMD = 'pt'
 BASE_DIR = os.path.abspath('.')
+
 
 class UnusedImageChecker:
     site_dir = None
@@ -18,13 +20,16 @@ class UnusedImageChecker:
     unused_imgs = []
     unknown_imgs = []
     unread_files = []
+    saved_file_name = None
+    output_format = 'json'
     dev_mode = False
 
 
-    def __init__(self, site_dir, is_debug_mode=False):
+    def __init__(self, site_dir, output_format='json', is_debug_mode=False):
         print('Start')
         self.site_dir = site_dir
         self.img_exts = ['jpeg', 'jpg', 'png', 'gif', 'svg']
+        self.output_format = output_format
         self.dev_mode = is_debug_mode
 
 
@@ -46,6 +51,8 @@ class UnusedImageChecker:
             'unread': self.unread_files,
         }
         saved_path = self.save_result(res)
+        if self.output_format == 'csv':
+            saved_path = self.convert2csv(saved_path)
 
         if self.dev_mode:
             pprint(res)
@@ -79,7 +86,11 @@ class UnusedImageChecker:
         if ext == '.css':
             return self.check_exists_in_target_css(img_root_path, target_root_path)
 
-        self.unknown_imgs.append({'img':img_root_path, 'target':target_root_path})
+        self.unknown_imgs.append({
+            'img': img_root_path,
+            'target': target_root_path,
+            'note': 'Not applicable file format',
+        })
         return False
 
 
@@ -94,9 +105,9 @@ class UnusedImageChecker:
             unread_file = {
                 'img': img_root_path,
                 'target': target_file_root_path,
+                'note': 'Error: UnicodeDecodeError',
             }
             self.unread_files.append(unread_file)
-            #pprint((9995555, unread_file))#!!!!!!!
 
         if not data:
             return False
@@ -185,9 +196,42 @@ class UnusedImageChecker:
 
 
     @staticmethod
-    def result_file_path():
-        dt_str = datetime.now().strftime('%Y%m%d%H%M%S')
-        return '%s/var/%s.json' % (BASE_DIR, dt_str)
+    def load_json_as_df(path):
+        ret = []
+        ret.append(['Type', 'Image', 'TargetFile', 'Note'])
+        with open(path) as jsonfile:
+            res = json.load(jsonfile)
+
+        for res_type, items in res.items():
+            if not items:
+                continue
+
+            for item in items:
+                note = item.get('note', '')
+                if res_type == 'unused':
+                    ret.append([res_type, item, '', note])
+                elif res_type == 'unread':
+                    ret.append([res_type, item['img'], item['target'], note])
+                elif res_type == 'unknown':
+                    ret.append([res_type, item['img'], item['target'], note])
+        return ret
+
+
+    def convert2csv(self, path):
+        #Read json
+        items = self.load_json_as_df(path)
+        df = pd.DataFrame(items)
+        if self.dev_mode:
+            print(df)
+        res_path = self.result_file_path('csv')
+        df.to_csv(res_path, header=False, index=False)
+        return res_path
+
+
+    def result_file_path(self, ext='json'):
+        if not self.saved_file_name:
+            self.saved_file_name = datetime.now().strftime('%Y%m%d%H%M%S')
+        return '%s/var/%s.%s' % (BASE_DIR, self.saved_file_name, ext)
 
 
     def save_result(self, body):
@@ -225,20 +269,24 @@ class UnusedImageChecker:
         return state.stdout.decode('utf8').strip()
 
 
-def main(path, is_debug_mode=False):
-    ins = UnusedImageChecker(path, is_debug_mode)
+def main(path, output_format = 'json', is_debug_mode=False):
+    ins = UnusedImageChecker(path, output_format, is_debug_mode)
     ins.execute()
 
 
 if __name__ == "__main__":
+    is_conv_csv = False
     is_debug = False
     args = sys.argv
     if len(args) < 2:
         print('Arguments are too short')
-    elif len(args) > 3:
+    elif len(args) > 4:
         print('Arguments are too long')
     elif len(args) == 3:
-        is_debug = bool(args[2])
+        is_conv_csv = bool(args[2])
+    elif len(args) == 4:
+        is_conv_csv = bool(args[2])
+        is_debug = bool(args[3])
     target_path = args[1]
-
-    main(target_path, is_debug)
+    res_format = 'csv' if is_conv_csv else 'json'
+    main(target_path, res_format, is_debug)
