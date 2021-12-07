@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from chardet import detect
 import pandas as pd
 
-SEARCH_STR_CMD = 'pt'
+SEARCH_STR_CMD = 'pt' #TODO: Replace with a commonly available command
 BASE_DIR = os.path.abspath('.')
 
 
