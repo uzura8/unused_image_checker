@@ -9,6 +9,7 @@ This tool to search and check unused images on website resources by Python
 You need below
 
 * Python >= v3.9.X
+* pt >= v2.2.X
 
 
 ### Work on local
