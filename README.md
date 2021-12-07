@@ -32,5 +32,5 @@ pip install -r requirements.txt
 ## Exercution
 
 ```bash
-python unused_image_checker.py {target site dir path} [is debug mode]
+python unused_image_checker.py {target site dir path} [is output as csv] [is debug mode]
 ```
